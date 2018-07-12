@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name:       Feedier
- * Description:       Smart surveys start now!
- * Version:           1.0.0
- * Author:            Alkaweb
- * Author URI:        https://alka-web.com
- * Text Domain:       alkaweb
+ * Description:       Feedback matters, do it well!
+ * Version:           1.1.0
+ * Author:            Feedier team
+ * Author URI:        https://feedier.com
+ * Text Domain:       feedier
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * GitHub Plugin URI: https://github.com/2Fwebd/feedier-wordpress
@@ -15,10 +15,16 @@
 /*
  * Plugin constants
  */
+if(!defined('FEEDIER_PLUGIN_VERSION'))
+	define('FEEDIER_PLUGIN_VERSION', '1.1.0');
 if(!defined('FEEDIER_URL'))
 	define('FEEDIER_URL', plugin_dir_url( __FILE__ ));
 if(!defined('FEEDIER_PATH'))
 	define('FEEDIER_PATH', plugin_dir_path( __FILE__ ));
+if(!defined('FEEDIER_ENDPOINT'))
+	define('FEEDIER_ENDPOINT', 'feedier.co');
+if(!defined('FEEDIER_PROTOCOL'))
+	define('FEEDIER_PROTOCOL', 'http');
 
 /*
  * Main class
@@ -55,7 +61,7 @@ class Feedier
 
 	    add_action('wp_footer', array( $this, 'addFooterCode'));
 
-		// Admin page calls:
+		// Admin page calls
 		add_action( 'admin_menu', array( $this, 'addAdminMenu' ) );
 		add_action( 'wp_ajax_store_admin_data', array( $this, 'storeAdminData' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'addAdminScripts' ) );
@@ -150,7 +156,7 @@ class Feedier
 
         $data = array();
 
-	    $response = wp_remote_get('https://api.feedier.com/v1/carriers/?api_key='. $private_key);
+	    $response = wp_remote_get(FEEDIER_PROTOCOL. '://api.'. FEEDIER_ENDPOINT .'/v1/carriers/?api_key='. $private_key);
 
 	    if (is_array($response) && !is_wp_error($response)) {
 		    $data = json_decode($response['body'], true);
@@ -294,6 +300,21 @@ class Feedier
                                     <tr>
                                         <td scope="row">
                                             <label>
+				                                <?php _e( 'In-site', 'feedier' ); ?>
+                                                <br>
+                                                <small><?php _e( '(answer in a new tab or not)', 'feedier' ); ?></small>
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input name="feedier_widget_in_site"
+                                                   id="feedier_widget_in_site"
+                                                   type="checkbox"
+		                                        <?php echo (isset($data['widget_in_site']) && $data['widget_in_site']) ? 'checked' : ''; ?>/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td scope="row">
+                                            <label>
                                                 <?php _e( 'Display probability', 'feedier' ); ?>
                                                 <br>
                                                 <small><?php _e( '(from 0 to 100)', 'feedier' ); ?></small>
@@ -303,6 +324,7 @@ class Feedier
                                             <input name="feedier_widget_display_probability"
                                                    id="feedier_widget_display_probability"
                                                    type="text"
+                                                   size="4"
                                                    class="regular-text"
                                                    value="<?php echo (isset($data['widget_display_probability'])) ? $data['widget_display_probability'] : '100'; ?>"/>
                                         </td>
@@ -338,6 +360,68 @@ class Feedier
                                             </select>
                                         </td>
                                     </tr>
+                                    <tr>
+                                        <td scope="row">
+                                            <label>
+				                                <?php _e( 'Title', 'feedier' ); ?>
+                                                <br>
+                                                <small><?php _e( '(if no title, reward name will be used)', 'feedier' ); ?></small>
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input name="feedier_widget_title"
+                                                   id="feedier_widget_title"
+                                                   type="text"
+                                                   class="regular-text"
+                                                   value="<?php echo (isset($data['widget_title'])) ? $data['widget_title'] : ''; ?>"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td scope="row">
+                                            <label>
+				                                <?php _e( 'Extra content', 'feedier' ); ?>
+                                                <br>
+                                                <small><?php _e( '(added at the end)', 'feedier' ); ?></small>
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input name="feedier_widget_extra_line"
+                                                   id="feedier_widget_extra_line"
+                                                   type="text"
+                                                   class="regular-text"
+                                                   value="<?php echo (isset($data['widget_extra_line'])) ? $data['widget_extra_line'] : ''; ?>"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td scope="row">
+                                            <label>
+				                                <?php _e( 'X offset', 'feedier' ); ?>
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input name="feedier_widget_offset_x"
+                                                   id="feedier_widget_offset_x"
+                                                   type="text"
+                                                   size="4"
+                                                   class="regular-text"
+                                                   value="<?php echo (isset($data['widget_offset_x'])) ? $data['widget_offset_x'] : 0; ?>"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td scope="row">
+                                            <label>
+				                                <?php _e( 'Y offset', 'feedier' ); ?>
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <input name="feedier_widget_offset_y"
+                                                   id="feedier_widget_offset_y"
+                                                   type="text"
+                                                   size="4"
+                                                   class="regular-text"
+                                                   value="<?php echo (isset($data['widget_offset_y'])) ? $data['widget_offset_y'] : 0; ?>"/>
+                                        </td>
+                                    </tr>
 
                                 <?php endif; ?>
                             </tbody>
@@ -368,9 +452,11 @@ class Feedier
      * This contains the widget markup used by the web app and the widget API call on the frontend
      * We use the options saved from the admin page
      *
+     * @param $force boolean
+     *
      * @return void
      */
-	public function addFooterCode()
+	public function addFooterCode($force = false)
     {
 
         $data = $this->getData();
@@ -384,11 +470,28 @@ class Feedier
              data-type="engager"
              data-position="<?php echo (isset($data['widget_position'])) ? $data['widget_position'] : 'left'; ?>"
              data-display-probability="<?php echo (isset($data['widget_display_probability'])) ? $data['widget_display_probability'] : '100'; ?>"
-             data-shake="<?php echo (isset($data['widget_shake'])) ? $data['widget_shake'] : 'false'; ?>"
+             data-shake="<?php echo (isset($data['widget_shake'])) ? $data['widget_shake'] : false; ?>"
+             data-in-site="<?php echo (isset($data['widget_in_site'])) ? $data['widget_in_site'] : true; ?>"
              data-carrier-id="<?php echo (isset($data['widget_carrier_id'])) ? $data['widget_carrier_id'] : '0'; ?>"
-             data-key="<?php echo (isset($data['public_key'])) ? $data['public_key'] : '0'; ?>"></div>
+             data-key="<?php echo (isset($data['public_key'])) ? $data['public_key'] : '0'; ?>"
+             <?php if (isset($data['widget_title']) && !empty($data['widget_title'])): ?>
+                 data-widget-title="<?php echo $data['widget_title']; ?>"
+             <?php endif; ?>
+	        <?php if (isset($data['widget_extra_line']) && !empty($data['widget_extra_line'])): ?>
+                data-extra-line="<?php echo $data['widget_extra_line']; ?>"
+	        <?php endif; ?>
+	        <?php if (isset($data['widget_offset_x']) && !empty($data['widget_offset_x'])): ?>
+                data-offset-x="<?php echo $data['widget_offset_x']; ?>"
+	        <?php endif; ?>
+	        <?php if (isset($data['widget_offset_y']) && !empty($data['widget_offset_y'])): ?>
+                data-offset-y="<?php echo $data['widget_offset_y']; ?>"
+	        <?php endif; ?>
+	        <?php if ($force): ?>
+                data-force="true"
+	        <?php endif; ?>
+        ></div>
 
-        <script src="https://feedier.com/js/widgets/widgets.min.js" type="text/javascript" async></script>
+        <script src="<?php echo FEEDIER_PROTOCOL . '://' . FEEDIER_ENDPOINT; ?>/js/widgets/widgets.min.js" type="text/javascript" async></script>
 
         <?php
 
