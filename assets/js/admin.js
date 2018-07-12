@@ -18,6 +18,7 @@ jQuery( document ).ready( function () {
             data: jQuery(this).serialize(),
             success: function ( response ) {
                 alert(response);
+                window.location.reload();
             }
         } );
 
