@@ -94,8 +94,11 @@ class Feedier
 
 		foreach ($_POST as $field=>$value) {
 
-		    if (substr($field, 0, 8) !== "feedier_" || empty($value))
+		    if (substr($field, 0, 8) !== "feedier_")
 				continue;
+
+		    if (empty($value))
+		        unset($data[$field]);
 
 		    // We remove the feedier_ prefix to clean things up
 		    $field = substr($field, 8);
@@ -178,11 +181,21 @@ class Feedier
 
 	    $surveys = $this->getSurveys($data['private_key']);
 
-		?>
+	    $not_ready = (empty($data['public_key']) || empty($surveys) || isset($surveys['error']));
+	    $has_engager_preview = (isset($_GET['feedier-demo-engager']) && $_GET['feedier-demo-engager'] === 'go');
+
+	    ?>
 
 		<div class="wrap">
 
             <h1><?php _e('Feedier Settings - start collecting real Feedback!', 'feedier'); ?></h1>
+
+			<?php if ($has_engager_preview): ?>
+				<?php $this->addFooterCode(true); ?>
+                <p class="notice notice-warning p-10">
+					<?php _e( 'The demo engager is enabled. You will see the widget, exactly as it will be displayed on your site.<br> The only difference is that until the preview is turned off it will always come back compared to the live version.', 'feedier' ); ?>
+                </p>
+			<?php endif; ?>
 
 
             <form id="feedier-admin-form" class="postbox">
@@ -190,19 +203,27 @@ class Feedier
                 <div class="form-group inside">
 
                     <h3>
-		                <?php if (empty($surveys) || isset($surveys['error'])): ?>
+		                <?php if ($not_ready): ?>
                             <span class="dashicons dashicons-no-alt error-message"></span>
 		                <?php else: ?>
                             <span class="dashicons dashicons-yes success-message"></span>
 		                <?php endif; ?>
-		                <?php _e('Feedier API Settings', 'feedier'); ?></h3>
+		                <?php _e('Feedier API Settings', 'feedier'); ?>
+                    </h3>
 
-                    <p>
-	                    <?php _e('Make sure you have a Feedier account first, it\'s free! 👍', 'feedier'); ?>
-		                <?php _e('You can <a href="https://feedier.com" target="_blank">create an account here</a>.', 'feedier'); ?>
-		                <br>
-                        <?php _e('If so you can find your api keys from your <a href="https://dashboard.feedier.com/#/integrations" target="_blank">integrations page</a>.', 'feedier'); ?>
-                    </p>
+	                <?php if ($not_ready): ?>
+                        <p>
+                            <?php _e('Make sure you have a Feedier account first, it\'s free! 👍', 'feedier'); ?>
+                            <?php _e('You can <a href="https://feedier.com" target="_blank">create an account here</a>.', 'feedier'); ?>
+                            <br>
+                            <?php _e('If so you can find your api keys from your <a href="https://dashboard.feedier.com/#/integrations" target="_blank">integrations page</a>.', 'feedier'); ?>
+                            <br>
+                            <br>
+	                        <?php _e('Once the keys set and saved, if you do not see any option, please reload the page. Thank you, you rock 🤘', 'feedier'); ?>
+                        </p>
+                    <?php else: ?>
+		                <?php _e('Access your <a href="https://dashboard.feedier.com" target="_blank">Feedier dashboard here</a>.', 'feedier'); ?>
+                    <?php endif; ?>
 
                     <table class="form-table">
                         <tbody>
@@ -287,10 +308,7 @@ class Feedier
                                                 <?php
                                                 // We loop through the surveys
                                                 foreach ($surveys['data'] as $survey) : ?>
-                                                    <?php
-                                                    // We also only keep the id -> x from the carrier_x returned by the API
-                                                    $survey['id'] = substr($survey['id'], 8); ?>
-                                                    <option value="<?php echo $survey['id']; ?>" <?php echo ($survey['id'] === $data['widget_carrier_id']) ? 'selected' : '' ?>>
+                                                    <option value="<?php echo $survey['id']; ?>" <?php echo ($survey['id'] === (int) $data['widget_carrier_id']) ? 'selected' : '' ?>>
                                                         <?php echo $survey['name']; ?>
                                                     </option>
                                                 <?php endforeach; ?>
@@ -351,10 +369,10 @@ class Feedier
                                         <td>
                                             <select name="feedier_widget_position"
                                                     id="feedier_widget_position">
-                                                <option value="left" <?php echo (!isset($data['widget_position']) || (isset($data['widget_position']) && $data['widget_position'] === 'left')) ? 'checked' : ''; ?>>
+                                                <option value="left" <?php echo (!isset($data['widget_position']) || (isset($data['widget_position']) && $data['widget_position'] === 'left')) ? 'selected' : ''; ?>>
                                                     <?php _e( 'Left side', 'feedier' ); ?>
                                                 </option>
-                                                <option value="right" <?php echo (isset($data['widget_position']) && $data['widget_position'] === 'right') ? 'checked' : ''; ?>>
+                                                <option value="right" <?php echo (isset($data['widget_position']) && $data['widget_position'] === 'right') ? 'selected' : ''; ?>>
                                                     <?php _e( 'Right side', 'feedier' ); ?>
                                                 </option>
                                             </select>
@@ -433,9 +451,26 @@ class Feedier
 
                 <hr>
 
-
                 <div class="inside">
-                    <button class="button button-primary" id="feedier-admin-save" type="submit"><?php _e( 'Save', 'feedier' ); ?></button>
+
+                    <button class="button button-primary" id="feedier-admin-save" type="submit">
+                        <?php _e( 'Save', 'feedier' ); ?>
+                    </button>
+
+                    <?php if (!$not_ready): ?>
+
+                        <?php if ($has_engager_preview): ?>
+                            <a href="<?php echo admin_url('admin.php?page=feedier'); ?>" class="button">
+			                    <?php _e( 'Stop engager widget', 'feedier' ); ?>
+                            </a>
+                        <?php else: ?>
+                            <a href="<?php echo add_query_arg('feedier-demo-engager','go'); ?>" class="button">
+                                <?php _e( 'Preview engager widget', 'feedier' ); ?>
+                            </a>
+                        <?php endif; ?>
+
+                    <?php endif; ?>
+
                 </div>
 
             </form>
