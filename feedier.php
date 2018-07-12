@@ -103,7 +103,7 @@ class Feedier
 		    // We remove the feedier_ prefix to clean things up
 		    $field = substr($field, 8);
 
-			$data[$field] = $value;
+			$data[$field] = esc_attr__($value);
 
 		}
 
@@ -170,6 +170,20 @@ class Feedier
     }
 
 	/**
+     * Get a Dashicon for a given status
+     *
+	 * @param $valid boolean
+     *
+     * @return string
+	 */
+    private function getStatusIcon($valid)
+    {
+
+        return ($valid) ? '<span class="dashicons dashicons-yes success-message"></span>' : '<span class="dashicons dashicons-no-alt error-message"></span>';
+
+    }
+
+	/**
 	 * Outputs the Admin Dashboard layout containing the form with all its options
      *
      * @return void
@@ -183,6 +197,7 @@ class Feedier
 
 	    $not_ready = (empty($data['public_key']) || empty($surveys) || isset($surveys['error']));
 	    $has_engager_preview = (isset($_GET['feedier-demo-engager']) && $_GET['feedier-demo-engager'] === 'go');
+	    $has_wc = (class_exists('WooCommerce'));
 
 	    ?>
 
@@ -202,12 +217,16 @@ class Feedier
 
                 <div class="form-group inside">
 
+	                <?php
+	                /*
+					 * --------------------------
+					 * API Settings
+					 * --------------------------
+					 */
+	                ?>
+
                     <h3>
-		                <?php if ($not_ready): ?>
-                            <span class="dashicons dashicons-no-alt error-message"></span>
-		                <?php else: ?>
-                            <span class="dashicons dashicons-yes success-message"></span>
-		                <?php endif; ?>
+		                <?php echo $this->getStatusIcon(!$not_ready); ?>
 		                <?php _e('Feedier API Settings', 'feedier'); ?>
                     </h3>
 
@@ -259,44 +278,127 @@ class Feedier
 
 	            <?php if (!empty($data['private_key']) && !empty($data['public_key'])): ?>
 
-                    <hr>
+                    <?php
+                    // if we don't even have a response from the API
+                    if (empty($surveys)) : ?>
+                        <p class="notice notice-error">
+                            <?php _e( 'An error happened on the WordPress side. Make sure your server allows remote calls.', 'feedier' ); ?>
+                        </p>
 
-                    <div class="form-group inside">
+                    <?php
+                    // If we have an error returned by the API
+                    elseif (isset($surveys['error'])): ?>
 
-                        <h3>
-                            <span class="dashicons dashicons-yes success-message"></span>
-		                    <?php _e('Engager widget options', 'feedier'); ?>
-                        </h3>
+                        <p class="notice notice-error">
+                            <?php echo $surveys['error']; ?>
+                        </p>
 
-                        <table class="form-table">
-                            <tbody>
-                                <?php
-                                // if we don't even have a response from the API
-                                if (empty($surveys)) : ?>
+                    <?php
+                    // If the surveys were returned
+                    else: ?>
 
+
+                        <?php
+                        /*
+                         * --------------------------
+                         * Woocommerce integration
+                         * --------------------------
+                         */
+                        ?>
+
+                        <hr>
+
+                        <div class="form-group inside">
+
+                            <h3>
+	                            <?php echo $this->getStatusIcon($has_wc && isset($data['wc_carrier_id'])); ?>
+                                <?php _e('WooCommerce', 'feedier'); ?>
+                            </h3>
+
+                            <p>
+	                            <?php _e('If enabled, an email footer not will be included when the order is completed to ask the customer to give his feedback. You can customize the content below.', 'feedier'); ?>
+                            </p>
+
+                            <?php if ($has_wc): ?>
+
+                                <table class="form-table">
+                                <tbody>
                                     <tr>
+                                        <td scope="row">
+                                            <label><?php _e( 'Feedback Carrier', 'feedier' ); ?></label>
+                                        </td>
                                         <td>
-                                            <p class="notice notice-error">
-                                                <?php _e( 'An error happened on the WordPress side. Make sure your server allows remote calls.', 'feedier' ); ?>
-                                            </p>
+                                            <select name="feedier_wc_carrier_id"
+                                                    id="feedier_wc_carrier_id">
+                                                <?php
+                                                // We loop through the surveys
+                                                foreach ($surveys['data'] as $survey) : ?>
+                                                    <option value="<?php echo $survey['id']; ?>" <?php echo ($survey['id'] === (int) $data['wc_carrier_id']) ? 'selected' : '' ?>>
+                                                        <?php echo $survey['name']; ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
                                         </td>
                                     </tr>
-
-                                <?php
-                                // If we have an error returned by the API
-                                elseif (isset($surveys['error'])): ?>
-
                                     <tr>
+                                        <td scope="row">
+                                            <label>
+			                                    <?php _e( 'Enabled', 'feedier' ); ?>
+                                            </label>
+                                        </td>
                                         <td>
-                                            <p class="notice notice-error">
-                                                <?php echo $surveys['error']; ?>
-                                            </p>
+                                            <input name="feedier_wc_enabled"
+                                                   id="feedier_wc_enabled"
+                                                   type="checkbox"
+			                                    <?php echo (isset($data['wc_enabled']) && $data['wc_enabled']) ? 'checked' : ''; ?>/>
                                         </td>
                                     </tr>
+                                    <tr>
+                                        <td scope="row">
+                                            <label>
+			                                    <?php _e( 'Content', 'feedier' ); ?>
+                                                <br>
+                                                <small><?php _e( '(sent with the complete order email)', 'feedier' ); ?></small>
+                                            </label>
+                                        </td>
+                                        <td>
+                                            <textarea name="feedier_wc_content"
+                                                      rows="4"
+                                                      cols="50"
+                                                      id="feedier_wc_content"><?php echo (isset($data['wc_content'])) ? esc_html__($data['wc_content']) : __( 'Your feedback matters. Please take 2 minutes to give us your feedback on your experience here: {URL}', 'feedier' ); ?>
+                                            </textarea>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
 
-                                <?php
-                                // If the surveys were returned
-                                else: ?>
+                            <?php else: ?>
+                                <p>
+		                            <?php _e('WooCommerce is not installed or active.', 'feedier'); ?>
+                                </p>
+                            <?php endif; ?>
+
+                        </div>
+
+                        <?php
+                        /*
+                         * --------------------------
+                         * Engager widget options
+                         * --------------------------
+                         */
+                        ?>
+
+                        <hr>
+
+                        <div class="form-group inside">
+
+                            <h3>
+	                            <?php echo $this->getStatusIcon(isset($data['widget_carrier_id'])); ?>
+                                <?php _e('Engager widget options', 'feedier'); ?>
+                            </h3>
+
+                            <table class="form-table">
+                                <tbody>
 
                                     <tr>
                                         <td scope="row">
@@ -318,7 +420,7 @@ class Feedier
                                     <tr>
                                         <td scope="row">
                                             <label>
-				                                <?php _e( 'In-site', 'feedier' ); ?>
+                                                <?php _e( 'In-site', 'feedier' ); ?>
                                                 <br>
                                                 <small><?php _e( '(answer in a new tab or not)', 'feedier' ); ?></small>
                                             </label>
@@ -327,7 +429,7 @@ class Feedier
                                             <input name="feedier_widget_in_site"
                                                    id="feedier_widget_in_site"
                                                    type="checkbox"
-		                                        <?php echo (isset($data['widget_in_site']) && $data['widget_in_site']) ? 'checked' : ''; ?>/>
+                                                <?php echo (isset($data['widget_in_site']) && $data['widget_in_site']) ? 'checked' : ''; ?>/>
                                         </td>
                                     </tr>
                                     <tr>
@@ -344,7 +446,7 @@ class Feedier
                                                    type="text"
                                                    size="4"
                                                    class="regular-text"
-                                                   value="<?php echo (isset($data['widget_display_probability'])) ? $data['widget_display_probability'] : '100'; ?>"/>
+                                                   value="<?php echo (isset($data['widget_display_probability'])) ? esc_attr__($data['widget_display_probability']) : '100'; ?>"/>
                                         </td>
                                     </tr>
                                     <tr>
@@ -381,7 +483,7 @@ class Feedier
                                     <tr>
                                         <td scope="row">
                                             <label>
-				                                <?php _e( 'Title', 'feedier' ); ?>
+                                                <?php _e( 'Title', 'feedier' ); ?>
                                                 <br>
                                                 <small><?php _e( '(if no title, reward name will be used)', 'feedier' ); ?></small>
                                             </label>
@@ -391,13 +493,13 @@ class Feedier
                                                    id="feedier_widget_title"
                                                    type="text"
                                                    class="regular-text"
-                                                   value="<?php echo (isset($data['widget_title'])) ? $data['widget_title'] : ''; ?>"/>
+                                                   value="<?php echo (isset($data['widget_title'])) ? esc_attr__($data['widget_title']) : ''; ?>"/>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td scope="row">
                                             <label>
-				                                <?php _e( 'Extra content', 'feedier' ); ?>
+                                                <?php _e( 'Extra content', 'feedier' ); ?>
                                                 <br>
                                                 <small><?php _e( '(added at the end)', 'feedier' ); ?></small>
                                             </label>
@@ -407,13 +509,13 @@ class Feedier
                                                    id="feedier_widget_extra_line"
                                                    type="text"
                                                    class="regular-text"
-                                                   value="<?php echo (isset($data['widget_extra_line'])) ? $data['widget_extra_line'] : ''; ?>"/>
+                                                   value="<?php echo (isset($data['widget_extra_line'])) ? esc_attr__($data['widget_extra_line']) : ''; ?>"/>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td scope="row">
                                             <label>
-				                                <?php _e( 'X offset', 'feedier' ); ?>
+                                                <?php _e( 'X offset', 'feedier' ); ?>
                                             </label>
                                         </td>
                                         <td>
@@ -422,13 +524,13 @@ class Feedier
                                                    type="text"
                                                    size="4"
                                                    class="regular-text"
-                                                   value="<?php echo (isset($data['widget_offset_x'])) ? $data['widget_offset_x'] : 0; ?>"/>
+                                                   value="<?php echo (isset($data['widget_offset_x'])) ? esc_attr__($data['widget_offset_x']) : 0; ?>"/>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td scope="row">
                                             <label>
-				                                <?php _e( 'Y offset', 'feedier' ); ?>
+                                                <?php _e( 'Y offset', 'feedier' ); ?>
                                             </label>
                                         </td>
                                         <td>
@@ -437,15 +539,15 @@ class Feedier
                                                    type="text"
                                                    size="4"
                                                    class="regular-text"
-                                                   value="<?php echo (isset($data['widget_offset_y'])) ? $data['widget_offset_y'] : 0; ?>"/>
+                                                   value="<?php echo (isset($data['widget_offset_y'])) ? esc_attr__($data['widget_offset_y']) : 0; ?>"/>
                                         </td>
                                     </tr>
+                                </tbody>
+                            </table>
 
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
+                        </div>
 
-                    </div>
+                    <?php endif; ?>
 
                 <?php endif; ?>
 
