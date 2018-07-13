@@ -16,7 +16,7 @@ jQuery( document ).ready( function () {
             url: feedier_exchanger.ajax_url,
             type: 'post',
             data: jQuery(this).serialize(),
-            success: function ( response ) {
+            success: function (response) {
                 alert(response);
             }
         } );
