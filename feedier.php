@@ -59,21 +59,62 @@ class Feedier
 	public function __construct()
     {
 
-	    add_action('wp_footer', array( $this, 'addFooterCode'));
+	    add_action('wp_footer',                 array($this,'addFooterCode'));
 
 		// Admin page calls
-		add_action( 'admin_menu', array( $this, 'addAdminMenu' ) );
-		add_action( 'wp_ajax_store_admin_data', array( $this, 'storeAdminData' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'addAdminScripts' ) );
+		add_action('admin_menu',                array($this,'addAdminMenu'));
+		add_action('wp_ajax_store_admin_data',  array($this,'storeAdminData'));
+		add_action('admin_enqueue_scripts',     array($this,'addAdminScripts'));
+
+		// WC integration
+       add_action('woocommerce_email_footer',  array($this,'wcFooter'));
 
 	}
+
+	/**
+	 * WooCommerce hook to add the Feedier note
+     *
+     * @param $email WC_Email
+     *
+     * @return void
+	 */
+	public function wcFooter($email)
+    {
+
+        if ($email->id !== 'customer_completed_order')
+            return;
+
+        $data = $this->getData();
+
+        if (!isset($data['wc_enabled']) || !$data['wc_enabled'] || !isset($data['wc_content']))
+            return;
+
+        $content = '';
+
+        $content .= '<div style="display: block; text-align: center; margin-bottom: 10px;">';
+
+        if (isset($data['wc_carrier_id'])) {
+            $api_response = $this->getCarriers($data['private_key'], $data['wc_carrier_id']);
+	        $carrier = (isset($api_response['data'][0]) && !empty($api_response['data'][0])) ? $api_response['data'][0] : null;
+            if ($carrier)
+	            $content .= str_replace('{URL}', '<a href="'. esc_url($carrier['url']) .'?email='. $email->recipient .'">'. esc_url($carrier['url']) .'</a>', esc_html($data['wc_content']));
+        } else {
+	        $content .= $data['wc_content'];
+        }
+
+        $content .= '</div>';
+
+        echo $content;
+
+    }
 
 	/**
 	 * Returns the saved options data as an array
      *
      * @return array
 	 */
-	private function getData() {
+	private function getData()
+    {
 	    return get_option($this->option_name, array());
     }
 
@@ -88,7 +129,7 @@ class Feedier
     {
 
 		if (wp_verify_nonce($_POST['security'], $this->_nonce ) === false)
-			die('Invalid Request!');
+			die('Invalid Request! Reload your page please.');
 
 		$data = $this->getData();
 
@@ -151,15 +192,20 @@ class Feedier
 	/**
 	 * Make an API call to the Feedier API and returns the response
      *
-     * @param string $private_key
+     * @param $private_key string
+     * @param $carrier_id int|null
+     *
+     *
      * @return array
 	 */
-	private function getSurveys($private_key)
+	private function getCarriers($private_key, $carrier_id = null)
     {
 
         $data = array();
 
-	    $response = wp_remote_get(FEEDIER_PROTOCOL. '://api.'. FEEDIER_ENDPOINT .'/v1/carriers/?api_key='. $private_key);
+        $carrier_id = ($carrier_id) ? '&carrier_id='. $carrier_id : '';
+
+	    $response = wp_remote_get(FEEDIER_PROTOCOL. '://api.'. FEEDIER_ENDPOINT .'/v1/carriers/?api_key='. $private_key . $carrier_id);
 
 	    if (is_array($response) && !is_wp_error($response)) {
 		    $data = json_decode($response['body'], true);
@@ -193,9 +239,9 @@ class Feedier
 
 		$data = $this->getData();
 
-	    $surveys = $this->getSurveys($data['private_key']);
+	    $api_response = $this->getCarriers($data['private_key']);
 
-	    $not_ready = (empty($data['public_key']) || empty($surveys) || isset($surveys['error']));
+	    $not_ready = (empty($data['public_key']) || empty($api_response) || isset($api_response['error']));
 	    $has_engager_preview = (isset($_GET['feedier-demo-engager']) && $_GET['feedier-demo-engager'] === 'go');
 	    $has_wc = (class_exists('WooCommerce'));
 
@@ -280,21 +326,21 @@ class Feedier
 
                     <?php
                     // if we don't even have a response from the API
-                    if (empty($surveys)) : ?>
+                    if (empty($api_response)) : ?>
                         <p class="notice notice-error">
                             <?php _e( 'An error happened on the WordPress side. Make sure your server allows remote calls.', 'feedier' ); ?>
                         </p>
 
                     <?php
                     // If we have an error returned by the API
-                    elseif (isset($surveys['error'])): ?>
+                    elseif (isset($api_response['error'])): ?>
 
                         <p class="notice notice-error">
-                            <?php echo $surveys['error']; ?>
+                            <?php echo $api_response['error']; ?>
                         </p>
 
                     <?php
-                    // If the surveys were returned
+                    // If the Feedback carriers were returned
                     else: ?>
 
 
@@ -311,7 +357,7 @@ class Feedier
                         <div class="form-group inside">
 
                             <h3>
-	                            <?php echo $this->getStatusIcon($has_wc && isset($data['wc_carrier_id'])); ?>
+	                            <?php echo $this->getStatusIcon($has_wc && isset($data['wc_content'])); ?>
                                 <?php _e('WooCommerce', 'feedier'); ?>
                             </h3>
 
@@ -330,9 +376,7 @@ class Feedier
                                         <td>
                                             <select name="feedier_wc_carrier_id"
                                                     id="feedier_wc_carrier_id">
-                                                <?php
-                                                // We loop through the surveys
-                                                foreach ($surveys['data'] as $survey) : ?>
+                                                <?php foreach ($api_response['data'] as $survey) : ?>
                                                     <option value="<?php echo $survey['id']; ?>" <?php echo ($survey['id'] === (int) $data['wc_carrier_id']) ? 'selected' : '' ?>>
                                                         <?php echo $survey['name']; ?>
                                                     </option>
@@ -407,9 +451,7 @@ class Feedier
                                         <td>
                                             <select name="feedier_widget_carrier_id"
                                                     id="feedier_widget_carrier_id">
-                                                <?php
-                                                // We loop through the surveys
-                                                foreach ($surveys['data'] as $survey) : ?>
+                                                <?php foreach ($api_response['data'] as $survey) : ?>
                                                     <option value="<?php echo $survey['id']; ?>" <?php echo ($survey['id'] === (int) $data['widget_carrier_id']) ? 'selected' : '' ?>>
                                                         <?php echo $survey['name']; ?>
                                                     </option>
