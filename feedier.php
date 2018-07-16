@@ -22,9 +22,9 @@ if(!defined('FEEDIER_URL'))
 if(!defined('FEEDIER_PATH'))
 	define('FEEDIER_PATH', plugin_dir_path( __FILE__ ));
 if(!defined('FEEDIER_ENDPOINT'))
-	define('FEEDIER_ENDPOINT', 'feedier.co');
+	define('FEEDIER_ENDPOINT', 'feedier.com');
 if(!defined('FEEDIER_PROTOCOL'))
-	define('FEEDIER_PROTOCOL', 'http');
+	define('FEEDIER_PROTOCOL', 'https');
 
 /*
  * Main class
