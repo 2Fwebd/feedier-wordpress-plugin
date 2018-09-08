@@ -176,8 +176,8 @@ class Admin extends Main
 			</h2>
 
 			<?php if ($has_engager_preview) { ?>
-				<?php $widgetEngager = new Engager();
-				$widgetEngager->addFooterCode(true); ?>
+				<?php $widget_Engager = new Engager();
+				$widget_Engager->addFooterCode(true); ?>
 				<p class="notice notice-warning p-10">
 					<?php _e( 'The demo engager is enabled. You will see the widget, exactly as it will be displayed on your site.<br> The only difference is that until the preview is turned off it will always come back compared to the live version.', 'feedier' ); ?>
 				</p>
@@ -193,28 +193,15 @@ class Admin extends Main
 						<?php echo $tab_class->getTitle(); ?>
 					</h3>
 
-					<?php if (!empty($data['private_key']) && !empty($data['public_key'])) { ?>
+                    <?php
+                    // If we have an error returned by the API
+                    if (isset($api_response['type']) && $api_response['type'] === 'error'): ?>
 
-						<?php
-						// if we don't even have a response from the API
-						if (empty($api_response)) : ?>
-							<p class="notice notice-error">
-								<?php _e( 'An error happened on the WordPress side. Make sure your server allows remote calls.', 'feedier' ); ?>
-							</p>
+                        <p class="notice notice-error">
+                            <?php echo $api_response['message']; ?>
+                        </p>
 
-						<?php
-						// If we have an error returned by the API
-						elseif (isset($api_response['error'])): ?>
-
-							<p class="notice notice-error">
-								<?php echo $api_response['error']; ?>
-							</p>
-
-						<?php
-						// If the Feedback carriers were returned
-						endif; ?>
-
-					<?php } ?>
+                    <?php endif; ?>
 
 		            <?php $tab_class->writeMarkup($not_ready, $data, $api_response); ?>
 
