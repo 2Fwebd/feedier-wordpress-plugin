@@ -26,11 +26,16 @@ if(!defined('FEEDIER_PROTOCOL'))
 	define('FEEDIER_PROTOCOL', 'https');
 
 require_once FEEDIER_PATH . 'Feedier/Main.php';
+require_once FEEDIER_PATH . 'Feedier/Libraries/WP_List_Table.php';
 require_once FEEDIER_PATH . 'Feedier/Admin/Engager.php';
 require_once FEEDIER_PATH . 'Feedier/Admin/Settings.php';
 require_once FEEDIER_PATH . 'Feedier/Admin/WooCommerce.php';
+require_once FEEDIER_PATH . 'Feedier/Admin/Score.php';
+require_once FEEDIER_PATH . 'Feedier/Admin/Feedbacks.php';
 require_once FEEDIER_PATH . 'Feedier/Admin.php';
 require_once FEEDIER_PATH . 'Feedier/Engager.php';
+require_once FEEDIER_PATH . 'Feedier/Score.php';
+require_once FEEDIER_PATH . 'Feedier/Widget.php';
 require_once FEEDIER_PATH . 'Feedier/WooCommerce.php';
 
 /*
@@ -38,6 +43,8 @@ require_once FEEDIER_PATH . 'Feedier/WooCommerce.php';
  */
 new \Feedier\Admin();
 new \Feedier\Engager();
+new \Feedier\Score();
+new \Feedier\Widget();
 new \Feedier\WooCommerce();
 
 

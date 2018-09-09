@@ -16,7 +16,7 @@ class Engager extends Main
 	 */
 	public function __construct()
 	{
-		add_action('wp_footer',                 array($this,'addFooterCode'));
+		add_action('wp_footer', array($this, 'addFooterCode'));
 	}
 
 	/**
@@ -63,8 +63,6 @@ class Engager extends Main
 				data-force="true"
 			<?php endif; ?>
 		></div>
-
-		<script src="<?php echo FEEDIER_PROTOCOL . '://' . FEEDIER_ENDPOINT; ?>/js/widgets/widgets.min.js" type="text/javascript" async></script>
 
 		<?php
 

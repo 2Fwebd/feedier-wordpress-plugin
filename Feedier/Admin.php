@@ -1,6 +1,8 @@
 <?php
 namespace Feedier;
 
+use Feedier\Admin\Feedbacks;
+
 /**
  * Class Admin
  *
@@ -8,6 +10,8 @@ namespace Feedier;
  */
 class Admin extends Main
 {
+
+
 
 	/**
 	 * Feedier constructor.
@@ -76,10 +80,12 @@ class Admin extends Main
 
 	/**
 	 * Adds the Feedier label to the WordPress Admin Sidebar Menu
+     *
+     * It also initiates the Feedback class to fire the WP list table at the right time
 	 */
 	public function addAdminMenu()
 	{
-		add_menu_page(
+		$page_hook = add_menu_page(
 			__( 'Feedback', 'feedier' ),
 			__( 'Feedback', 'feedier' ),
 			'manage_options',
@@ -87,6 +93,16 @@ class Admin extends Main
 			array($this, 'adminLayout'),
 			'dashicons-testimonial'
 		);
+
+		add_action('load-'.$page_hook, function () {
+			$arguments = array(
+				'label'		=>	__( 'Feedbacks Per Page', 'feedier'),
+				'default'	=>	30,
+				'option'	=>	'feedbacks_per_page'
+			);
+			add_screen_option( 'per_page', $arguments);
+			new Feedbacks('feedier');
+        });
 	}
 
 	/**
@@ -153,6 +169,10 @@ class Admin extends Main
 			$tab_class = new Admin\Engager();
 		} else if ($nav_tab === 'feedier-woocommerce') {
 			$tab_class = new Admin\WooCommerce();
+		} else if ($nav_tab === 'feedier-feedback') {
+			$tab_class = new Admin\Feedbacks();
+		} else if ($nav_tab === 'feedier-score') {
+			$tab_class = new Admin\Score();
 		} else {
 			$tab_class = new Admin\Settings();
 			$nav_tab = 'feedier-settings';
