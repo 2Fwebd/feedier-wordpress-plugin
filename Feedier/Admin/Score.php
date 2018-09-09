@@ -44,6 +44,9 @@ class Score
 	public function writeMarkup($not_ready, $data, $api_response)
 	{
 
+	    if (!$api_response['data'])
+	        return null;
+
 		?>
 
 		<p><?php _e('Please use the following shortcode in any page to display the widget.'); ?></p>
